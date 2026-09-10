@@ -1,0 +1,88 @@
+{% extends "manage_base.html" %}
+{% set manage_section = 'games' %}
+
+{% block title %}{{ game['name'] }}{% endblock %}
+{% block heading %}{{ game['name'] }}{% endblock %}
+{% block subtitle %}Управление игрой и персонажами.{% endblock %}
+{% block actions %}
+<a class="button ghost" href="{{ url_for('manage_game_edit', game_id=game['id']) }}">⚙ Настройки игры</a>
+<a class="button primary" href="{{ url_for('manage_character_new', game_id=game['id']) }}">＋ Персонаж</a>
+{% endblock %}
+
+{% block content %}
+<section class="game-overview-grid">
+    <article class="panel game-summary-card">
+        <div class="game-cover-large">
+            {% if game_image_url(game) %}<img src="{{ game_image_url(game) }}" alt="{{ game['name'] }}">{% else %}<span>{{ game['name'][:1]|upper }}</span>{% endif %}
+        </div>
+        <div>
+            <div class="game-row-title">
+                <h2>{{ game['name'] }}</h2>
+                <span class="status status-{{ game['publication_status'] }}">{{ game['publication_status'] }}</span>
+            </div>
+            <p>{{ game['description'] or 'Описание не заполнено.' }}</p>
+            <dl class="mini-meta">
+                <div><dt>Тип</dt><dd>{{ 'Будущий релиз' if game['release_status'] == 'upcoming' else 'Вышедшая игра' }}</dd></div>
+                <div><dt>Дата релиза</dt><dd>{{ game['release_date'] or '—' }}</dd></div>
+            </dl>
+        </div>
+    </article>
+
+    <article class="panel config-summary">
+        <header class="panel-header"><div><p class="section-kicker">КОНФИГУРАЦИЯ</p><h2>Что включено</h2></div></header>
+        <div class="config-columns">
+            <div>
+                <h3>Сайдбар</h3>
+                <div class="chip-list">
+                    {% for key, label in sidebar_options %}{% if sidebar_sections.get(key) %}<span>{{ label }}</span>{% endif %}{% endfor %}
+                    {% if not sidebar_sections.values()|select|list %}<em>Нет разделов</em>{% endif %}
+                </div>
+            </div>
+            <div>
+                <h3>Страница персонажа</h3>
+                <div class="chip-list">
+                    {% for key, label in module_options %}{% if character_modules.get(key) %}<span>{{ label }}</span>{% endif %}{% endfor %}
+                </div>
+            </div>
+            <div>
+                <h3>Категории тира</h3>
+                <div class="chip-list">
+                    {% for category in categories %}<span>{{ category['name'] }}</span>{% else %}<em>Не настроены</em>{% endfor %}
+                </div>
+            </div>
+            <div>
+                <h3>Поля/фильтры</h3>
+                <div class="chip-list">
+                    {% for field in character_fields %}<span>{{ field['label'] }}</span>{% else %}<em>Не настроены</em>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </article>
+</section>
+
+<section class="panel">
+    <header class="panel-header">
+        <div><p class="section-kicker">БАЗА ДАННЫХ</p><h2>Персонажи</h2></div>
+    </header>
+
+    {% if characters %}
+    <div class="character-admin-grid">
+        {% for character in characters %}
+        <a class="character-admin-card" href="{{ url_for('manage_character_edit', character_id=character['id']) }}">
+            <div class="character-admin-image">
+                {% if character_image_url(character) %}<img src="{{ character_image_url(character) }}" alt="{{ character['name'] }}">{% endif %}
+            </div>
+            <div>
+                <h3>{{ character['name'] }}</h3>
+                <span class="status status-{{ character['publication_status'] }}">{{ character['publication_status'] }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">
+        <strong>Персонажей пока нет.</strong>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Раздел в разработке{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('style_file', filename='coming_soon_style.css') }}">
+{% endblock %}
+
+{% block body %}
+<header class="site-header">
+    {% include '_brand_logo.html' %}
+    <nav class="site-nav">
+        <a href="{{ url_for('home') }}">Главная</a>
+        <a href="{{ url_for('tier_list') }}">Тирлист</a>
+        <a href="{{ url_for('character_info') }}">Персонажи</a>
+        {% if current_user and current_user['role'] in ['admin', 'creator'] %}<a href="{{ url_for('manage_dashboard') }}">Управление</a>{% endif %}
+        {% include '_account_control.html' %}
+    </nav>
+</header>
+
+<main class="coming-page">
+    <section class="coming-card">
+        <span class="coming-mark">{{ brand['mark'] }}</span>
+        <p class="coming-kicker">{{ brand['name']|upper }}</p>
+        <h1>Этот раздел ещё строится</h1>
+        <p>Ссылка уже подключена, но отдельная страница для этого раздела пока не создана. Так в проекте не остаётся тупиковых <code>href="#"</code>.</p>
+        <div class="coming-actions">
+            <a class="primary" href="{{ url_for('home') }}">На главную</a>
+            <a href="{{ url_for('tier_list') }}">Открыть Tier List</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

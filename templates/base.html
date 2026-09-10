@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ brand['name'] }} — {% block title %}{% endblock %}</title>
+    {% block page_styles %}{% endblock %}
+    <link rel="stylesheet" href="{{ url_for('style_file', filename='global_style.css') }}">
+    {% if brand['favicon_filename'] %}
+    <link rel="icon" href="{{ url_for('content_file', filename=brand['favicon_filename']) }}">
+    {% endif %}
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+{% block body %}{% endblock %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

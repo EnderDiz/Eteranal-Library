@@ -1,0 +1,160 @@
+{% extends "manage_base.html" %}
+{% set manage_section = 'games' %}
+
+{% block title %}{{ 'Новая игра' if not game else 'Настройки ' ~ game['name'] }}{% endblock %}
+{% block heading %}{{ 'Создание игры' if not game else 'Настройки игры' }}{% endblock %}
+{% block subtitle %}Конфигурация этой игры станет общей для всех её персонажей.{% endblock %}
+{% block actions %}
+{% if game %}
+<a class="button ghost" href="{{ url_for('manage_game_history', game_id=game['id']) }}">История</a>
+<a class="button ghost" href="{{ url_for('manage_game', game_id=game['id']) }}">← К игре</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<form class="editor-form" method="post" enctype="multipart/form-data" data-management-form {% if game %}data-autosave-form{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">1 / ОСНОВНОЕ</p><h2>Игра</h2></div></header>
+        <div class="form-grid two">
+            <label class="form-field wide">
+                <span>Название <b>*</b></span>
+                <input type="text" name="name" required maxlength="120" value="{{ game['name'] if game else '' }}">
+            </label>
+            <label class="form-field">
+                <span>Тип</span>
+                <select name="release_status">
+                    <option value="released" {% if not game or game['release_status']=='released' %}selected{% endif %}>Вышедшая игра</option>
+                    <option value="upcoming" {% if game and game['release_status']=='upcoming' %}selected{% endif %}>Будущий релиз</option>
+                </select>
+            </label>
+            <label class="form-field">
+                <span>Статус</span>
+                <select name="publication_status">
+                    {% for value, label in [('draft','Черновик'),('published','Опубликовано'),('archived','Архив')] %}
+                    <option value="{{ value }}" {% if (game and game['publication_status']==value) or (not game and value=='draft') %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="form-field">
+                <span>Дата релиза</span>
+                <input type="date" name="release_date" value="{{ game['release_date'] if game and game['release_date'] else '' }}">
+            </label>
+            <label class="form-field">
+                <span>Патч / версия / сезон</span>
+                <input type="text" name="content_cycle_label" value="{{ game['content_cycle_label'] if game and game['content_cycle_label'] else '' }}" {% if game %}data-autosave-on-change{% endif %}>
+            </label>
+            <label class="form-field wide">
+                <span>Описание</span>
+                <textarea name="description" rows="4">{{ game['description'] if game and game['description'] else '' }}</textarea>
+            </label>
+            <label class="form-field wide image-upload-field">
+                <span>Изображение</span>
+                <input type="file" name="image" accept="image/png,image/jpeg,image/webp" data-image-input>
+            </label>
+        </div>
+    </section>
+
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">2 / НАВИГАЦИЯ</p><h2>Разделы боковой панели</h2></div></header>
+        <div class="toggle-grid">
+            {% for key, label in sidebar_options %}
+            <label class="toggle-card">
+                <input type="checkbox" name="sidebar_sections" value="{{ key }}" {% if sidebar_sections.get(key) %}checked{% endif %}>
+                <span class="toggle-ui"></span>
+                <strong>{{ label }}</strong>
+            </label>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">3 / ПЕРСОНАЖ</p><h2>Разделы страницы персонажа</h2></div></header>
+        <div class="toggle-grid">
+            {% for key, label in module_options %}
+            <label class="toggle-card">
+                <input type="checkbox" name="character_modules" value="{{ key }}" {% if character_modules.get(key) %}checked{% endif %}>
+                <span class="toggle-ui"></span>
+                <strong>{{ label }}</strong>
+            </label>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panel editor-section">
+        <header class="panel-header">
+            <div><p class="section-kicker">4 / TIER LIST</p><h2>Категории</h2></div>
+            <button class="button ghost small" type="button" data-add-row="tier-category-template" data-target="tier-categories">＋ Категория</button>
+        </header>
+        <div class="repeat-list" id="tier-categories">
+            {% for category in categories %}
+            <div class="repeat-row category-row">
+                <input type="hidden" name="category_id" value="{{ category['id'] }}">
+                <label class="form-field"><span>Название</span><input type="text" name="category_name" value="{{ category['name'] }}"></label>
+                <button type="button" class="remove-row" data-remove-row aria-label="Удалить">×</button>
+            </div>
+            {% endfor %}
+        </div>
+        <template id="tier-category-template">
+            <div class="repeat-row category-row">
+                <input type="hidden" name="category_id" value="">
+                <label class="form-field"><span>Название</span><input type="text" name="category_name"></label>
+                <button type="button" class="remove-row" data-remove-row aria-label="Удалить">×</button>
+            </div>
+        </template>
+    </section>
+
+    <section class="panel editor-section">
+        <header class="panel-header">
+            <div><p class="section-kicker">5 / ФИЛЬТРЫ</p><h2>Поля персонажей</h2></div>
+            <button class="button ghost small" type="button" data-add-row="character-field-template" data-target="character-fields">＋ Поле</button>
+        </header>
+        <div class="repeat-list" id="character-fields">
+            {% for field in character_fields %}
+            <div class="repeat-row field-row">
+                <input type="hidden" name="field_id" value="{{ field['id'] }}">
+                <label class="form-field"><span>Название</span><input type="text" name="field_label" value="{{ field['label'] }}"></label>
+                <label class="form-field"><span>Тип</span><select name="field_type"><option value="select" {% if field['field_type']=='select' %}selected{% endif %}>Список</option><option value="text" {% if field['field_type']=='text' %}selected{% endif %}>Текст</option><option value="number" {% if field['field_type']=='number' %}selected{% endif %}>Число</option></select></label>
+                <label class="form-field options-field"><span>Варианты через запятую</span><input type="text" name="field_options" value="{{ field['options']|join(', ') }}"></label>
+                <label class="form-field compact-field"><span>Фильтр</span><select name="field_filterable"><option value="1" {% if field['filterable'] %}selected{% endif %}>Да</option><option value="0" {% if not field['filterable'] %}selected{% endif %}>Нет</option></select></label>
+                <label class="form-field compact-field"><span>Сортировка</span><select name="field_sortable"><option value="1" {% if field['sortable'] %}selected{% endif %}>Да</option><option value="0" {% if not field['sortable'] %}selected{% endif %}>Нет</option></select></label>
+                <button type="button" class="remove-row" data-remove-row aria-label="Удалить">×</button>
+            </div>
+            {% endfor %}
+        </div>
+        <template id="character-field-template">
+            <div class="repeat-row field-row">
+                <input type="hidden" name="field_id" value="">
+                <label class="form-field"><span>Название</span><input type="text" name="field_label"></label>
+                <label class="form-field"><span>Тип</span><select name="field_type"><option value="select">Список</option><option value="text">Текст</option><option value="number">Число</option></select></label>
+                <label class="form-field options-field"><span>Варианты через запятую</span><input type="text" name="field_options"></label>
+                <label class="form-field compact-field"><span>Фильтр</span><select name="field_filterable"><option value="1">Да</option><option value="0">Нет</option></select></label>
+                <label class="form-field compact-field"><span>Сортировка</span><select name="field_sortable"><option value="0">Нет</option><option value="1">Да</option></select></label>
+                <button type="button" class="remove-row" data-remove-row aria-label="Удалить">×</button>
+            </div>
+        </template>
+    </section>
+
+    <div class="sticky-savebar {% if game %}autosave-bar{% endif %}">
+        {% if game %}
+        <div class="autosave-state is-saved" data-autosave-status aria-live="polite">
+            <span class="autosave-dot" aria-hidden="true"></span>
+            <span data-autosave-text>Все изменения сохранены</span>
+        </div>
+        {% else %}
+        <button class="button primary" type="submit">Создать игру</button>
+        {% endif %}
+    </div>
+</form>
+
+{% if game %}
+<section class="panel danger-zone">
+    <header class="panel-header"><div><p class="section-kicker">УДАЛЕНИЕ</p><h2>Удалить игру</h2></div></header>
+    <form method="post" action="{{ url_for('manage_game_delete', game_id=game['id']) }}" data-confirm-delete="Удалить игру {{ game['name'] }}?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button danger" type="submit">Удалить игру</button>
+    </form>
+</section>
+{% endif %}
+{% endblock %}

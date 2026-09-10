@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ game['name'] }} — Персонажи{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('style_file', filename='tier_list_style.css') }}">
+{% endblock %}
+
+{% block body %}
+<header class="site-header">
+    {% include '_brand_logo.html' %}
+    <nav class="site-nav">
+        <a href="{{ url_for('home') }}">Главная</a>
+        <a class="active" aria-current="page" href="{{ url_for('public_game_characters', game_slug=game['slug']) }}">Персонажи</a>
+        <a href="{{ url_for('public_game_tier_list', game_slug=game['slug']) }}">Тирлист</a>
+        <a href="{{ url_for('coming_soon') }}">Вики</a>
+        {% if current_user and current_user['role'] in ['admin', 'creator'] %}<a href="{{ url_for('manage_dashboard') }}">Управление</a>{% endif %}
+        {% include '_account_control.html' %}
+    </nav>
+</header>
+<main class="page-layout">
+    {% with active_game_section='characters' %}{% include '_game_sidebar.html' %}{% endwith %}
+    <div class="page-content">
+        <header class="tier-list-header">
+            <p class="tier-game-name">{{ game['name'] }}</p>
+            <h1>Персонажи</h1>
+        </header>
+        <form class="tier-filters" method="get" data-auto-filter>
+            <input name="q" value="{{ query }}" type="search" placeholder="Поиск персонажа...">
+
+            {% for field in filterable_fields %}
+            <select name="field_{{ field['id'] }}" aria-label="{{ field['label'] }}">
+                <option value="">{{ field['label'] }}</option>
+                {% for option in filter_options[field['id']] %}
+                <option value="{{ option }}" {% if selected_filters.get(field['id']) == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+            {% endfor %}
+
+            {% if sortable_fields %}
+            <select name="sort" aria-label="Сортировка">
+                <option value="">По имени</option>
+                {% for field in sortable_fields %}
+                <option value="{{ field['field_key'] }}" {% if sort_key == field['field_key'] %}selected{% endif %}>{{ field['label'] }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+
+            <button type="submit">Применить</button>
+            {% if query or selected_filters or sort_key %}
+            <a class="filter-reset" href="{{ url_for('public_game_characters', game_slug=game['slug']) }}">Сбросить</a>
+            {% endif %}
+        </form>
+        <div class="character-catalog">
+            {% for card in cards %}
+            {% set character = card.character %}
+            <article class="catalog-character-shell character-card" style="--character-avatar-bg: url('{{ url_for('content_file', filename='avatar_bg/avatar_bg_' ~ card.avatar_background ~ '.webp') }}');">
+                <a class="catalog-character-card" href="{{ url_for('public_character', game_slug=game['slug'], character_slug=character['slug']) }}">
+                    <img src="{{ character_image_url(character) }}" alt="{{ character['name'] }}">
+                    <div>
+                        <h2>{{ character['name'] }}</h2>
+                    </div>
+                </a>
+
+                <div class="character-overlay">
+                    <div class="character-overlay-image">
+                        <img alt="{{ character['name'] }}" src="{{ character_image_url(character) }}">
+                    </div>
+                    <h3 class="overlay-name">{{ character['name'] }}</h3>
+
+                    {% if card.field_items %}
+                    <div class="character-tags">
+                        {% for field, value in card.field_items[:3] %}
+                        <span class="character-tag">{{ value }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if card.rating_items %}
+                    <div class="ratings ratings-dynamic">
+                        {% for category, rating in card.rating_items %}
+                        <div class="rating">
+                            <strong class="rating-value rating-{{ rating|lower }}">{{ rating }}</strong>
+                            <span class="rating-label">{{ category['name'] }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </article>
+            {% else %}
+            <div class="tier-notice"><p>Опубликованных персонажей пока нет.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+<footer class="site-footer"><p><a href="{{ url_for('coming_soon') }}">Privacy Policy</a></p><p>{{ brand['copyright'] }}</p></footer>
+<script src="{{ url_for('script_file', filename='public_filters.js') }}"></script>
+<script src="{{ url_for('script_file', filename='character_overlay.js') }}"></script>
+{% endblock %}

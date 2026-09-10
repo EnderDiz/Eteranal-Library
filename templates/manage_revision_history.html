@@ -1,0 +1,51 @@
+{% extends "manage_base.html" %}
+{% set manage_section = 'games' %}
+
+{% block title %}История — {{ entity_name }}{% endblock %}
+{% block heading %}История изменений{% endblock %}
+{% block subtitle %}{{ entity_name }}{% endblock %}
+{% block actions %}
+<a class="button ghost" href="{{ back_url }}">← Назад</a>
+{% endblock %}
+
+{% block content %}
+<section class="panel revision-panel">
+    <header class="panel-header">
+        <div>
+            <p class="section-kicker">REVISION HISTORY</p>
+            <h2>{{ 'Настройки игры' if entity_type == 'game' else 'Персонаж' }}</h2>
+        </div>
+    </header>
+
+    {% if revisions %}
+    <div class="revision-list">
+        {% for revision in revisions %}
+        <article class="revision-row">
+            <div class="revision-info">
+                <strong>{{ revision['created_at'] }}</strong>
+                <span>
+                    {{ revision['editor_name'] or 'Удалённый пользователь' }}
+                    ·
+                    {% if revision['reason'] == 'before_rollback' %}
+                    состояние перед откатом
+                    {% else %}
+                    состояние перед сохранением
+                    {% endif %}
+                </span>
+            </div>
+
+            <form method="post" action="{{ url_for('manage_revision_rollback', revision_id=revision['id']) }}" onsubmit="return confirm('Вернуть эту версию? Текущее состояние сначала будет сохранено в истории.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="button ghost small" type="submit">Вернуть</button>
+            </form>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="revision-empty">
+        <strong>История пока пуста.</strong>
+        <span>Первая точка восстановления появится после следующего изменения.</span>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

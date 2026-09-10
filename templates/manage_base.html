@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Управление{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('style_file', filename='management_style.css') }}">
+{% endblock %}
+
+{% block body %}
+<header class="site-header">
+    {% include '_brand_logo.html' %}
+
+    <nav class="site-nav" aria-label="Основная навигация">
+        <a href="{{ url_for('home') }}">На сайт</a>
+        <a class="active" href="{{ url_for('manage_dashboard') }}">Управление</a>
+    </nav>
+
+    {% include '_account_control.html' %}
+</header>
+
+<div class="manage-layout">
+    <aside class="manage-sidebar">
+        <p class="sidebar-kicker">TIER LIST CMS</p>
+        <nav class="manage-nav">
+            <a class="{% if manage_section == 'dashboard' %}active{% endif %}" href="{{ url_for('manage_dashboard') }}">
+                <span>⌂</span> Обзор
+            </a>
+            <a class="{% if manage_section == 'games' %}active{% endif %}" href="{{ url_for('manage_dashboard') }}#games">
+                <span>▦</span> Игры
+            </a>
+        </nav>
+
+        {% if game is defined and game %}
+        <div class="sidebar-context">
+            <span>Текущая игра</span>
+            <strong>{{ game['name'] }}</strong>
+            <a href="{{ url_for('manage_game', game_id=game['id']) }}">Открыть управление</a>
+        </div>
+        {% endif %}
+
+        <div class="sidebar-note">
+            <strong>{{ role_label(current_user['role']) }}</strong>
+            {% if current_user['role'] == 'admin' %}
+            <span>Полный доступ ко всем играм.</span>
+            {% else %}
+            <span>Доступ только к назначенным играм.</span>
+            {% endif %}
+        </div>
+    </aside>
+
+    <main class="manage-content">
+        <header class="page-heading">
+            <div>
+                <p class="eyebrow">{{ brand['name']|upper }} / MANAGEMENT</p>
+                <h1>{% block heading %}Управление{% endblock %}</h1>
+                <p>{% block subtitle %}{% endblock %}</p>
+            </div>
+            <div class="heading-actions">{% block actions %}{% endblock %}</div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-stack" aria-live="polite">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('script_file', filename='management.js') }}"></script>
+{% endblock %}

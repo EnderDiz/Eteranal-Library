@@ -1,0 +1,177 @@
+{% extends "manage_base.html" %}
+{% set manage_section = 'games' %}
+
+{% block title %}{{ 'Новый персонаж' if not character else character['name'] }}{% endblock %}
+{% block heading %}{{ 'Новый персонаж' if not character else character['name'] }}{% endblock %}
+{% block subtitle %}{{ game['name'] }} · имя и изображение — единственные обязательные данные.{% endblock %}
+{% block actions %}
+{% if character %}<a class="button ghost" href="{{ url_for('manage_character_history', character_id=character['id']) }}">История</a>{% endif %}
+<a class="button ghost" href="{{ url_for('manage_game', game_id=game['id']) }}">← {{ game['name'] }}</a>
+{% endblock %}
+
+{% block content %}
+<form class="editor-form character-editor" method="post" enctype="multipart/form-data" {% if character %}data-autosave-form{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">ОСНОВНОЕ</p><h2>Карточка персонажа</h2></div></header>
+        <div class="character-basic-grid">
+            <label class="character-image-dropzone" data-image-dropzone>
+                {% if character and character_image_url(character) %}
+                <img src="{{ character_image_url(character) }}" alt="{{ character['name'] }}" data-image-preview>
+                {% else %}
+                <span data-image-placeholder>＋<small>Изображение *</small></span>
+                <img alt="Предпросмотр" data-image-preview hidden>
+                {% endif %}
+                <input type="file" name="image" accept="image/png,image/jpeg,image/webp" {% if not character %}required{% endif %} data-image-input>
+            </label>
+            <div class="form-grid two">
+                <label class="form-field wide"><span>Имя <b>*</b></span><input type="text" name="name" required maxlength="120" value="{{ character['name'] if character else '' }}"></label>
+                <label class="form-field"><span>Статус</span><select name="publication_status">{% for value, label in [('draft','Черновик'),('published','Опубликовано'),('archived','Архив')] %}<option value="{{ value }}" {% if (character and character['publication_status']==value) or (not character and value=='draft') %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+                {% set current_rarity = editor_data['values'].get(rarity_field['id'], '') if rarity_field else '' %}
+                {% set current_background = character['avatar_background'] if character and character['avatar_background'] else 'assr' %}
+                <label class="form-field" data-avatar-background-field {% if current_rarity|lower in avatar_background_values %}hidden{% endif %}>
+                    <span>Фон карточки</span>
+                    <select name="avatar_background" data-avatar-background-select>
+                        {% for background in avatar_background_values %}
+                        <option value="{{ background }}" {% if current_background == background %}selected{% endif %}>{{ background|upper }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="form-field wide"><span>Короткое описание</span><textarea name="summary" rows="4">{{ character['summary'] if character and character['summary'] else '' }}</textarea></label>
+            </div>
+        </div>
+    </section>
+
+    {% if fields %}
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">ПОЛЯ И ФИЛЬТРЫ</p><h2>Свойства персонажа</h2></div></header>
+        <div class="form-grid three">
+            {% for field in fields %}
+            {% set current = editor_data['values'].get(field['id'], '') %}
+            <label class="form-field">
+                <span>{{ field['label'] }}</span>
+                {% if field['field_type'] == 'select' %}
+                <select name="field_{{ field['id'] }}" {% if rarity_field and field['id'] == rarity_field['id'] %}data-rarity-input{% endif %}><option value="">— Не указано —</option>{% for option in field['options'] %}<option value="{{ option }}" {% if current == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>
+                {% elif field['field_type'] == 'number' %}
+                <input type="number" name="field_{{ field['id'] }}" value="{{ current }}" {% if rarity_field and field['id'] == rarity_field['id'] %}data-rarity-input{% endif %}>
+                {% else %}
+                <input type="text" name="field_{{ field['id'] }}" value="{{ current }}" {% if rarity_field and field['id'] == rarity_field['id'] %}data-rarity-input{% endif %}>
+                {% endif %}
+            </label>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if categories %}
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">TIER LIST</p><h2>Оценки</h2></div></header>
+        <div class="ratings-editor-grid">
+            {% for category in categories %}
+            <label class="rating-editor-card"><span>{{ category['name'] }}</span><select name="rating_{{ category['id'] }}"><option value="">—</option>{% for tier in tier_values %}<option value="{{ tier }}" {% if editor_data['ratings'].get(category['id']) == tier %}selected{% endif %}>{{ tier }}</option>{% endfor %}</select></label>
+            {% endfor %}
+        </div>
+        {% if character %}
+        <div class="change-status-editor">
+            <label class="toggle-card">
+                <input type="checkbox" name="mark_changed" value="1" {% if character['manual_changed_cycle'] == game['content_cycle'] %}checked{% endif %}>
+                <span class="toggle-ui"></span>
+                <strong>Изменён</strong>
+            </label>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if modules.get('profile') %}
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">PROFILE</p><h2>Профиль</h2></div></header>
+        <label class="form-field"><span>Подробная информация</span><textarea name="profile_text" rows="8">{{ editor_data['text']['profile_text'] if editor_data['text'] and editor_data['text']['profile_text'] else '' }}</textarea></label>
+    </section>
+    {% endif %}
+
+    {% if modules.get('skills') %}
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">SKILLS</p><h2>Способности</h2></div><button class="button ghost small" type="button" data-add-row="skill-template" data-target="skills-list">＋ Способность</button></header>
+        <div class="repeat-list" id="skills-list">
+            {% for skill in editor_data['skills'] %}
+            <div class="repeat-row skill-row">
+                <label class="form-field"><span>Тип</span><input type="text" name="skill_type" value="{{ skill['skill_type'] or '' }}"></label>
+                <label class="form-field"><span>Название</span><input type="text" name="skill_name" value="{{ skill['name'] }}"></label>
+                <label class="form-field wide"><span>Описание</span><textarea name="skill_description" rows="3">{{ skill['description'] or '' }}</textarea></label>
+                <label class="form-field wide"><span>Дополнительно</span><textarea name="skill_extra" rows="2">{{ skill['extra_info'] or '' }}</textarea></label>
+                <button type="button" class="remove-row" data-remove-row>×</button>
+            </div>
+            {% endfor %}
+        </div>
+        <template id="skill-template"><div class="repeat-row skill-row"><label class="form-field"><span>Тип</span><input type="text" name="skill_type"></label><label class="form-field"><span>Название</span><input type="text" name="skill_name"></label><label class="form-field wide"><span>Описание</span><textarea name="skill_description" rows="3"></textarea></label><label class="form-field wide"><span>Дополнительно</span><textarea name="skill_extra" rows="2"></textarea></label><button type="button" class="remove-row" data-remove-row>×</button></div></template>
+    </section>
+    {% endif %}
+
+    {% if modules.get('stats') %}
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">STATS</p><h2>Характеристики</h2></div><button class="button ghost small" type="button" data-add-row="stat-template" data-target="stats-list">＋ Характеристика</button></header>
+        <div class="repeat-list" id="stats-list">
+            {% for stat in editor_data['stats'] %}
+            <div class="repeat-row stat-row"><label class="form-field"><span>Название</span><input type="text" name="stat_label" value="{{ stat['label'] }}"></label><label class="form-field"><span>Значение</span><input type="text" name="stat_value" value="{{ stat['value'] }}"></label><button type="button" class="remove-row" data-remove-row>×</button></div>
+            {% endfor %}
+        </div>
+        <template id="stat-template"><div class="repeat-row stat-row"><label class="form-field"><span>Название</span><input type="text" name="stat_label"></label><label class="form-field"><span>Значение</span><input type="text" name="stat_value"></label><button type="button" class="remove-row" data-remove-row>×</button></div></template>
+    </section>
+    {% endif %}
+
+    {% if modules.get('review') %}
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">REVIEW</p><h2>Ревью</h2></div></header>
+        <label class="form-field"><span>Текст ревью</span><textarea name="review_text" rows="10">{{ editor_data['text']['review_text'] if editor_data['text'] and editor_data['text']['review_text'] else '' }}</textarea></label>
+    </section>
+    {% endif %}
+
+    {% if modules.get('pros_cons') %}
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">PROS & CONS</p><h2>Плюсы и минусы</h2></div></header>
+        <div class="pros-cons-editor">
+            <div>
+                <div class="subsection-title"><h3>Плюсы</h3><button class="button ghost tiny" type="button" data-add-row="pro-template" data-target="pros-list">＋</button></div>
+                <div class="repeat-list" id="pros-list">{% for item in editor_data['pros'] %}<div class="repeat-row bullet-row"><input type="text" name="pros" value="{{ item['text'] }}"><button type="button" class="remove-row" data-remove-row>×</button></div>{% endfor %}</div>
+            </div>
+            <div>
+                <div class="subsection-title"><h3>Минусы</h3><button class="button ghost tiny" type="button" data-add-row="con-template" data-target="cons-list">＋</button></div>
+                <div class="repeat-list" id="cons-list">{% for item in editor_data['cons'] %}<div class="repeat-row bullet-row"><input type="text" name="cons" value="{{ item['text'] }}"><button type="button" class="remove-row" data-remove-row>×</button></div>{% endfor %}</div>
+            </div>
+        </div>
+        <template id="pro-template"><div class="repeat-row bullet-row"><input type="text" name="pros"><button type="button" class="remove-row" data-remove-row>×</button></div></template>
+        <template id="con-template"><div class="repeat-row bullet-row"><input type="text" name="cons"><button type="button" class="remove-row" data-remove-row>×</button></div></template>
+    </section>
+    {% endif %}
+
+    {% if modules.get('other_information') %}
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">OTHER</p><h2>Дополнительная информация</h2></div></header>
+        <label class="form-field"><span>Содержимое раздела</span><textarea name="other_information_text" rows="9">{{ editor_data['text']['other_information_text'] if editor_data['text'] and editor_data['text']['other_information_text'] else '' }}</textarea></label>
+    </section>
+    {% endif %}
+
+    <div class="sticky-savebar {% if character %}autosave-bar{% endif %}">
+        {% if character %}
+        <div class="autosave-state is-saved" data-autosave-status aria-live="polite">
+            <span class="autosave-dot" aria-hidden="true"></span>
+            <span data-autosave-text>Все изменения сохранены</span>
+        </div>
+        {% else %}
+        <button class="button primary" type="submit" name="submit_action" value="continue">Создать персонажа</button>
+        {% endif %}
+    </div>
+</form>
+
+{% if character %}
+<section class="panel danger-zone">
+    <header class="panel-header"><div><p class="section-kicker">УДАЛЕНИЕ</p><h2>Удалить персонажа</h2></div></header>
+    <form method="post" action="{{ url_for('manage_character_delete', character_id=character['id']) }}" data-confirm-delete="Удалить персонажа {{ character['name'] }}?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button danger" type="submit">Удалить персонажа</button>
+    </form>
+</section>
+{% endif %}
+{% endblock %}

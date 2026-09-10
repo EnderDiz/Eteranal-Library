@@ -1,0 +1,384 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+
+    background: #23242a;
+    color: white;
+}
+
+
+/* Шапка */
+
+.site-header {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 20px 30px;
+
+    background: #1c1d21;
+
+    border-bottom: 1px solid #33343a;
+}
+
+.site-logo img {
+    width: 180px;
+    height: auto;
+
+    display: block;
+}
+
+.site-nav {
+    display: flex;
+    gap: 20px;
+}
+
+.site-nav a {
+    color: white;
+    text-decoration: none;
+}
+
+
+/* Основная сетка */
+
+.page-layout {
+    display: grid;
+
+    grid-template-columns: 240px 1fr;
+
+    min-height: 100vh;
+}
+
+.page-content {
+    min-width: 0;
+
+    padding: 30px;
+}
+
+.game-sidebar {
+    display: flex;
+    flex-direction: column;
+
+    padding: 20px;
+
+    background: #1c1d21;
+
+    border-right: 1px solid #33343a;
+}
+
+.game-nav {
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+.game-nav a {
+    padding: 10px 12px;
+
+    color: #ccc;
+    text-decoration: none;
+
+    border-left: 3px solid transparent;
+}
+
+.game-nav a:hover {
+    background: #25262b;
+
+    color: white;
+}
+
+.game-nav a.active {
+    background: #303137;
+
+    color: white;
+
+    border-left-color: #5ea0ff;
+}
+
+.game-nav h3 {
+    margin: 20px 10px 5px;
+
+    font-size: 12px;
+    font-weight: normal;
+
+    color: #777;
+    text-transform: uppercase;
+}
+
+/* Фильтры */
+
+.tier-filters {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 20px;
+    padding: 12px;
+
+    background: #1c1d21;
+    border: 1px solid #33343a;
+}
+
+.tier-filters input,
+.tier-filters select,
+.tier-filters button {
+    height: 40px;
+
+    padding: 0 12px;
+}
+
+.tier-filters input {
+    width: 250px;
+}
+
+.tier-filters {
+    flex-wrap: wrap;
+}
+
+/* Тир */
+
+.tier {
+    display: grid;
+
+    grid-template-columns:
+        100px
+        1fr;
+
+    margin-bottom: 10px;
+
+    border: 1px solid #33343a;
+    background: #36373d;
+}
+
+.tier-title {
+    margin: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+}
+
+.tier-row {
+    display: flex;
+
+    gap: 10px;
+    padding: 10px;
+}
+
+
+/* Персонаж */
+
+.character-card {
+    width: 130px;
+    min-height: 130px;
+
+    border: 1px solid #555;
+    background: #25262b;
+
+    position: relative;
+}
+
+.character-card img {
+    width: 100%;
+
+    display: block;
+}
+
+.character-card h3 {
+    margin: 5px;
+
+    text-align: center;
+}
+
+.character-overlay {
+    position: absolute;
+
+    left: 50%;
+    bottom: calc(100% + 10px);
+
+    transform: translateX(-50%);
+
+    width: 390px;
+
+    padding: 14px 14px 16px;
+
+    background: #202126;
+
+    border: 1px solid #36373d;
+    border-radius: 4px;
+
+    box-shadow:
+            0 12px 35px rgba(0, 0, 0, 0.45);
+
+    opacity: 0;
+    visibility: hidden;
+
+    z-index: 1000;
+
+    text-align: center;
+}
+
+.character-overlay-image {
+    margin: auto;
+    width: 40%;
+}
+
+.character-overlay-image {
+    width: 76px;
+    height: 76px;
+
+    margin: -4px auto 4px;
+
+    overflow: hidden;
+
+    border-bottom: 3px solid #e5b748;
+}
+
+.character-overlay-image img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.character-card:hover .character-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.character-card.overlay-bottom .character-overlay {
+    bottom: auto;
+
+    top: calc(100% + 10px);
+}
+
+.overlay-name {
+    margin: 5px 0 8px;
+
+    color: #f5f5f5;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.ratings {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 10px;
+
+    margin-top: 8px;
+}
+
+.rating {
+    text-align: center;
+    font-weight: bold;
+}
+
+.rating-value {
+    display: block;
+
+    padding: 6px 5px;
+
+    color: #181818;
+
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.rating-label {
+    display: block;
+
+    margin-top: 6px;
+
+    color: #9c9ca4;
+
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.character-tags {
+    display: flex;
+
+    justify-content: center;
+    gap: 12px;
+
+    margin: 12px 0;
+}
+
+.character-tag {
+    padding: 8px 14px;
+
+    color: #bbb;
+    background: #2a2b31;
+    font-weight: bold;
+
+    font-size: 15px;
+
+    border-bottom: 3px solid #777;
+}
+
+.character-tag.role {
+    border-bottom-color: #d6c34f;
+}
+
+.character-tag.type {
+    border-bottom-color: #58a9df;
+}
+
+/* Цвета рангов */
+
+.tier-s .tier-title {
+    background: #ef5350;
+    color: #191817;
+}
+
+.tier-a .tier-title {
+    background: #ec6563;
+    color: #191817;
+}
+
+.tier-b .tier-title {
+    background: #ffa967;
+    color: #191817;
+}
+
+.tier-c .tier-title {
+    background: #ffbe7c;
+    color: #191817;
+}
+
+.tier-d .tier-title {
+    background: #bfff7f;
+    color: #191817;
+}
+
+.rating-sss {
+    background: #c84bdd;
+}
+
+.rating-ss {
+    background: #db6256;
+}
+
+.rating-s {
+    background: #e87969;
+}
+
+.rating-a {
+    background: #e6a0a0;
+}
+
+.rating-b {
+    background: #e2ac6e;
+}
