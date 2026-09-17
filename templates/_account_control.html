@@ -1,7 +1,0 @@
-{% if current_user %}
-<a class="header-avatar-link" href="{{ url_for('profile') }}" aria-label="Личный кабинет: {{ current_user['username'] }}" title="{{ current_user['username'] }}">
-    <img src="{{ avatar_url(current_user) }}" alt="">
-</a>
-{% else %}
-<a class="auth-link" href="{{ url_for('login') }}">Войти</a>
-{% endif %}
