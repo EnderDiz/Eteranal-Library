@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Markdown-редактор Eternal Library.">
+    <title>{{ chapter['title'] if chapter else 'Новая глава' }} — {{ book['title'] }} — Eternal Library</title>
+    {% include 'components/_favicon.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common/global_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/codemirror/lib/codemirror.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/writer.css') }}">
+</head>
+<body class="page page--writer">
+    <header class="writer-header">
+        <div class="writer-header__left">
+            <a class="writer-avatar" href="{{ url_for('profile.profile') }}"
+               aria-label="Личный кабинет: {{ current_user['username'] if current_user else 'Профиль' }}">
+                <img src="{{ avatar_url(current_user) }}" alt="">
+            </a>
+            <nav class="writer-nav" aria-label="Основная навигация">
+                <a href="{{ url_for('core.home') }}">Главная</a>
+                <a href="{{ url_for('tierlists.home') }}">Тир листы</a>
+                <a href="{{ url_for('library.home') }}">Библиотека</a>
+                <a class="active" href="#writer-editor">Редактор</a>
+            </nav>
+        </div>
+        <a class="writer-logo" href="{{ url_for('core.home') }}" aria-label="{{ brand['name'] }} — главная">
+            <img src="{{ url_for('static', filename='img/brand/' ~ brand['logo_filename']) }}" alt="{{ brand['name'] }}">
+        </a>
+    </header>
+
+    <form class="writer-layout" method="post" data-chapter-editor
+          data-preview-url="{{ url_for('library_manage.chapter_preview', book_id=book['id']) }}"
+          data-autosave-url="{% if chapter %}{{ url_for('library_manage.chapter_autosave', book_id=book['id'], chapter_id=chapter['id']) }}{% endif %}"
+          data-draft-key="el:writer:{{ book['id'] }}:{{ chapter['id'] if chapter else 'new' }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <aside class="writer-sidebar" aria-label="Навигация книги">
+            <div class="writer-sidebar__inner">
+                <a class="writer-back" href="{{ url_for('library_manage.book_edit', book_id=book['id']) }}">← К книге</a>
+
+                <section class="writer-book">
+                    {% if book['cover_filename'] %}
+                    <img class="writer-book__cover"
+                         src="{{ url_for('core.media_file', filename='library/covers/' ~ book['cover_filename']) }}"
+                         alt="Обложка {{ book['title'] }}">
+                    {% else %}
+                    <div class="writer-book__cover writer-book__cover--empty" aria-hidden="true">EL</div>
+                    {% endif %}
+                    <div class="writer-book__info">
+                        <h2>{{ book['title'] }}</h2>
+                        <span class="writer-pill writer-pill--{{ book['publication_status'] }}">
+                            {{ {'draft':'Черновик','published':'Опубликовано','archived':'Архив'}[book['publication_status']] }}
+                        </span>
+                    </div>
+                </section>
+
+                {% if book['publication_status'] == 'published' %}
+                <a class="writer-open-public" href="{{ url_for('library.book', slug=book['slug']) }}">Открыть на сайте ↗</a>
+                {% endif %}
+
+                <section class="writer-chapters" aria-labelledby="chapter-list-title">
+                    <header class="writer-section-head">
+                        <div>
+                            <span>Структура книги</span>
+                            <h2 id="chapter-list-title">Главы</h2>
+                        </div>
+                        <button class="writer-add" type="submit" form="new-chapter-form"
+                                aria-label="Добавить главу" title="Добавить главу">＋</button>
+                    </header>
+
+                    {% if chapters %}
+                    <ol class="writer-chapter-list">
+                        {% for item in chapters %}
+                        <li class="{% if chapter and item['id'] == chapter['id'] %}active{% endif %}">
+                            <a href="{{ url_for('library_manage.chapter_edit', book_id=book['id'], chapter_id=item['id']) }}">
+                                <span class="writer-chapter-number">{{ item['chapter_number'] }}</span>
+                                <span class="writer-chapter-title">{{ item['title'] }}</span>
+                                <span class="writer-dot writer-dot--{{ item['publication_status'] }}"></span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                    {% if chapter_total > chapters|length %}
+                    <a class="writer-all-chapters" href="{{ url_for('library_manage.book_edit', book_id=book['id']) }}#chapters">
+                        Все главы · {{ chapter_total }} →
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <div class="writer-empty">
+                        <strong>Глав пока нет</strong>
+                        <span>Создай первую главу и начни писать.</span>
+                    </div>
+                    {% endif %}
+                </section>
+
+                <section class="writer-shortcuts-card">
+                    <span class="writer-sidebar-label">Быстрый доступ</span>
+                    <button type="button" data-open-command-palette><kbd>Ctrl</kbd><kbd>P</kbd><span>Команды</span></button>
+                    <button type="button" data-open-search><kbd>Ctrl</kbd><kbd>F</kbd><span>Поиск</span></button>
+                </section>
+            </div>
+        </aside>
+
+        <main class="writer-main" id="writer-editor">
+            <header class="writer-main-head">
+                <div class="writer-main-head__title">
+                    <div class="writer-breadcrumbs">
+                        <span>{{ book['title'] }}</span><span>/</span>
+                        <span>{{ 'Глава ' ~ chapter_number }}</span>
+                    </div>
+                    <h1 data-editor-heading>{{ chapter['title'] if chapter else 'Новая глава' }}</h1>
+                    <div class="writer-head-meta">
+                        <span class="writer-pill writer-pill--{{ chapter['publication_status'] if chapter else 'draft' }}">
+                            {{ {'draft':'Черновик','published':'Опубликована','archived':'Архив'}[chapter['publication_status']] if chapter else 'Черновик' }}
+                        </span>
+                        <span data-word-counter>{{ stats['word_count'] }} слов</span>
+                        <span data-reading-counter>{{ stats['reading_time_label'] }}</span>
+                    </div>
+                </div>
+
+                <div class="writer-main-head__actions">
+                    <button class="writer-icon-button" type="button" data-toggle-typewriter title="Режим печатной машинки">⌁</button>
+                    <button class="writer-icon-button" type="button" data-toggle-focus title="Режим фокуса">⛶</button>
+                    {% if chapter and chapter['publication_status'] == 'published' and book['publication_status'] == 'published' %}
+                    <a class="writer-button" href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=chapter['slug']) }}">На сайте ↗</a>
+                    {% endif %}
+                </div>
+            </header>
+
+            <section class="writer-editor-shell" data-editor-shell>
+                <div class="writer-tabs" role="tablist" aria-label="Режим редактора">
+                    <button class="active" type="button" data-editor-mode="editor">Редактор</button>
+                    <button type="button" data-editor-mode="split">Разделённый</button>
+                    <button type="button" data-editor-mode="preview">Предпросмотр</button>
+                    <span class="writer-tabs__spacer"></span>
+                    <span class="writer-save-state" data-save-state>
+                        <i></i> Все изменения сохранены
+                    </span>
+                </div>
+
+                <div class="writer-toolbar" role="toolbar" aria-label="Markdown-инструменты">
+                    <span class="writer-toolbar-group">
+                        <button type="button" data-md-action="h2" title="Заголовок 2">H2</button>
+                        <button type="button" data-md-action="h3" title="Заголовок 3">H3</button>
+                    </span>
+                    <span class="writer-toolbar-separator"></span>
+                    <span class="writer-toolbar-group">
+                        <button type="button" data-md-action="bold" title="Жирный (Ctrl+B)"><strong>B</strong></button>
+                        <button type="button" data-md-action="italic" title="Курсив (Ctrl+I)"><em>I</em></button>
+                        <button type="button" data-md-action="strike" title="Зачёркнутый"><s>S</s></button>
+                        <button type="button" data-md-action="code" title="Код">&lt;/&gt;</button>
+                    </span>
+                    <span class="writer-toolbar-separator"></span>
+                    <span class="writer-toolbar-group">
+                        <button type="button" data-md-action="quote" title="Цитата">❝</button>
+                        <button type="button" data-md-action="ul" title="Маркированный список">•≡</button>
+                        <button type="button" data-md-action="ol" title="Нумерованный список">1≡</button>
+                        <button type="button" data-md-action="task" title="Список задач">☑</button>
+                    </span>
+                    <span class="writer-toolbar-separator"></span>
+                    <span class="writer-toolbar-group">
+                        <button type="button" data-md-action="link" title="Ссылка (Ctrl+K)">⌁</button>
+                        <button type="button" data-md-action="codeblock" title="Блок кода">{ }</button>
+                        <button type="button" data-md-action="table" title="Таблица">▦</button>
+                        <button type="button" data-md-action="footnote" title="Сноска">¹</button>
+                        <button type="button" data-md-action="hr" title="Разделитель">—</button>
+                    </span>
+                    <span class="writer-toolbar__spacer"></span>
+                    <button type="button" data-toggle-line-numbers aria-pressed="false" title="Показать номера строк">№</button>
+                    <button type="button" data-open-search title="Поиск и замена">⌕</button>
+                    <button type="button" data-open-command-palette title="Палитра команд (Ctrl+P)">⌘</button>
+                </div>
+
+                <div class="writer-search" data-search-panel hidden>
+                    <input type="search" placeholder="Найти в главе" data-search-input>
+                    <input type="text" placeholder="Заменить на" data-replace-input>
+                    <span data-search-count>0 совпадений</span>
+                    <button type="button" data-search-prev title="Предыдущее">↑</button>
+                    <button type="button" data-search-next title="Следующее">↓</button>
+                    <button type="button" data-replace-one>Заменить</button>
+                    <button type="button" data-replace-all>Все</button>
+                    <button type="button" data-close-search aria-label="Закрыть">×</button>
+                </div>
+
+                <div class="writer-draft-recovery" data-draft-recovery hidden>
+                    <span>Найден локальный черновик, который отличается от сохранённой версии.</span>
+                    <button type="button" data-restore-draft>Восстановить</button>
+                    <button type="button" data-discard-draft>Удалить</button>
+                </div>
+
+                <div class="writer-workspace is-mode-editor" data-writer-workspace>
+                    <section class="writer-source-pane" aria-label="Markdown-редактор">
+                        <div class="writer-source-gutter" aria-hidden="true" data-line-numbers>1</div>
+                        <textarea class="writer-source" name="content_markdown" spellcheck="true"
+                                  autocomplete="off" autocapitalize="sentences"
+                                  data-markdown-editor placeholder="Начните писать. Markdown поддерживается полностью.">{{ chapter_markdown }}</textarea>
+                    </section>
+                    <section class="writer-preview-pane" aria-label="Предпросмотр главы">
+                        <article class="writer-preview reader-prose" data-markdown-preview>
+                            <p class="writer-preview-empty">Предпросмотр появится здесь.</p>
+                        </article>
+                    </section>
+                </div>
+
+                <footer class="writer-editor-footer">
+                    <div>
+                        <span data-footer-words>{{ stats['word_count'] }} слов</span>
+                        <span data-footer-chars>{{ stats['char_count'] }} символов</span>
+                        <span data-footer-reading>{{ stats['reading_time_label'] }}</span>
+                    </div>
+                    <div>
+                        <span>Markdown</span>
+                        <span data-cursor-position>Строка 1 · Столбец 1</span>
+                    </div>
+                </footer>
+            </section>
+        </main>
+
+        <aside class="writer-inspector" aria-label="Параметры главы">
+            <div class="writer-inspector__inner">
+                <details class="writer-panel" open>
+                    <summary>Информация о главе</summary>
+                    <div class="writer-panel-body">
+                        <label class="writer-field">
+                            <span>Название главы</span>
+                            <input type="text" name="title" required maxlength="180"
+                                   value="{{ chapter['title'] if chapter else '' }}"
+                                   placeholder="Название главы" data-chapter-title data-autosave-field>
+                        </label>
+                        <label class="writer-field">
+                            <span>Краткое описание</span>
+                            <textarea name="summary" rows="3" maxlength="500" data-autosave-field
+                                      placeholder="О чём эта глава?">{{ chapter['summary'] if chapter and chapter['summary'] else '' }}</textarea>
+                        </label>
+                        <div class="writer-field-grid">
+                            <label class="writer-field">
+                                <span>Статус</span>
+                                {% set chapter_status = chapter['publication_status'] if chapter else 'draft' %}
+                                <select name="publication_status" data-autosave-field>
+                                    {% for value, label in [('draft','Черновик'),('published','Опубликована'),('archived','Архив')] %}
+                                    <option value="{{ value }}" {% if value == chapter_status %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="writer-field">
+                                <span>Порядок</span>
+                                <input type="number" min="0" name="sort_order" value="{{ chapter['sort_order'] }}" data-autosave-field>
+                            </label>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="writer-panel" open>
+                    <summary>Структура главы</summary>
+                    <div class="writer-panel-body">
+                        <nav class="writer-outline" data-outline>
+                            <span class="writer-outline-empty">Добавьте заголовки Markdown, чтобы построить структуру.</span>
+                        </nav>
+                    </div>
+                </details>
+
+                <details class="writer-panel" open>
+                    <summary>Метки и теги</summary>
+                    <div class="writer-panel-body">
+                        <label class="writer-field">
+                            <span>Через запятую</span>
+                            <input type="text" name="tags" value="{{ chapter_tags|join(', ') }}" data-autosave-field
+                                   placeholder="тема, персонаж, место">
+                        </label>
+                    </div>
+                </details>
+
+                <details class="writer-panel" open>
+                    <summary>Статистика</summary>
+                    <div class="writer-panel-body">
+                        <dl class="writer-stats">
+                            <div><dt>Слов</dt><dd data-stat-words>{{ stats['word_count'] }}</dd></div>
+                            <div><dt>Символов</dt><dd data-stat-chars>{{ stats['char_count'] }}</dd></div>
+                            <div><dt>Время чтения</dt><dd data-stat-reading>{{ stats['reading_time_label'] }}</dd></div>
+                        </dl>
+                    </div>
+                </details>
+
+                <details class="writer-panel" open>
+                    <summary>Личные заметки</summary>
+                    <div class="writer-panel-body">
+                        <label class="writer-field">
+                            <span class="sr-only">Личные заметки</span>
+                            <textarea name="notes" rows="7" data-autosave-field
+                                      placeholder="Идеи, планы, детали сцены...">{{ chapter['notes'] if chapter and chapter['notes'] else '' }}</textarea>
+                        </label>
+                    </div>
+                </details>
+
+                <details class="writer-panel writer-panel--shortcuts">
+                    <summary>Горячие клавиши</summary>
+                    <div class="writer-panel-body writer-hotkeys">
+                        <span><kbd>Ctrl</kbd><kbd>S</kbd><b>Сохранить сейчас</b></span>
+                        <span><kbd>Ctrl</kbd><kbd>P</kbd><b>Команды</b></span>
+                        <span><kbd>Ctrl</kbd><kbd>F</kbd><b>Найти</b></span>
+                        <span><kbd>Ctrl</kbd><kbd>H</kbd><b>Заменить</b></span>
+                        <span><kbd>Ctrl</kbd><kbd>B</kbd><b>Жирный</b></span>
+                        <span><kbd>Ctrl</kbd><kbd>I</kbd><b>Курсив</b></span>
+                    </div>
+                </details>
+
+                {% if chapter %}
+                <section class="writer-danger">
+                    <strong>Удаление</strong>
+                    <p>Глава будет удалена без возможности восстановления.</p>
+                    <button class="writer-button writer-button--danger" type="submit" form="delete-chapter-form">Удалить главу</button>
+                </section>
+                {% endif %}
+            </div>
+        </aside>
+    </form>
+
+    <form id="new-chapter-form" method="post" action="{{ url_for('library_manage.chapter_new', book_id=book['id']) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+
+    {% if chapter %}
+    <form id="delete-chapter-form" method="post"
+          action="{{ url_for('library_manage.chapter_delete', book_id=book['id'], chapter_id=chapter['id']) }}"
+          onsubmit="return confirm('Удалить главу «{{ chapter['title'] }}»?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+    {% endif %}
+
+    <dialog class="writer-command-palette" data-command-palette>
+        <div class="writer-command-palette__head">
+            <input type="search" placeholder="Команда..." data-command-search autofocus>
+            <kbd>Esc</kbd>
+        </div>
+        <div class="writer-command-list" data-command-list>
+            <button type="button" data-palette-command="save"><span>Сохранить сейчас</span><kbd>Ctrl S</kbd></button>
+            <button type="button" data-palette-command="mode:editor"><span>Режим: Редактор</span></button>
+            <button type="button" data-palette-command="mode:split"><span>Режим: Разделённый</span></button>
+            <button type="button" data-palette-command="mode:preview"><span>Режим: Предпросмотр</span><kbd>Ctrl Enter</kbd></button>
+            <button type="button" data-palette-command="search"><span>Поиск и замена</span><kbd>Ctrl F</kbd></button>
+            <button type="button" data-palette-command="focus"><span>Режим фокуса</span></button>
+            <button type="button" data-palette-command="typewriter"><span>Печатная машинка</span></button>
+            <button type="button" data-palette-command="line-numbers"><span>Показать / скрыть номера строк</span></button>
+            <button type="button" data-palette-command="bold"><span>Жирный текст</span><kbd>Ctrl B</kbd></button>
+            <button type="button" data-palette-command="italic"><span>Курсив</span><kbd>Ctrl I</kbd></button>
+            <button type="button" data-palette-command="quote"><span>Цитата</span></button>
+            <button type="button" data-palette-command="table"><span>Вставить таблицу</span></button>
+            <button type="button" data-palette-command="footnote"><span>Вставить сноску</span></button>
+        </div>
+    </dialog>
+
+    <script src="{{ url_for('static', filename='vendor/codemirror/lib/codemirror.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/codemirror/mode/markdown/markdown.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/codemirror/addon/edit/closebrackets.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/codemirror/addon/edit/continuelist.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/codemirror/addon/selection/active-line.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/library/writer.js') }}"></script>
+</body>
+</html>

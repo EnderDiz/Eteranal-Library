@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Eternal Library — личная электронная библиотека.">
+    <title>Eternal Library — Библиотека</title>
+    {% include 'components/_favicon.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/home.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common/global_style.css') }}">
+</head>
+<body class="page page--home">
+    {% with site_section='library' %}{% include 'components/_site_header.html' %}{% endwith %}
+
+    <main>
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero__inner">
+                <div class="hero__content">
+                    <p class="eyebrow">Eternal Library</p>
+                    <h1 id="hero-title">Электронная библиотека</h1>
+                    <p class="hero__lead">Мои книги, мысли и длинные тексты в одном месте.</p>
+
+                    <form class="library-search" role="search" action="{{ url_for('library.home') }}" method="get">
+                        <label class="sr-only" for="library-search-input">Поиск по библиотеке</label>
+                        <input id="library-search-input" name="q" type="search" value="{{ query }}" placeholder="Поиск по книгам и темам...">
+                        <button type="submit">Найти</button>
+                    </form>
+
+                    <div class="hero-features" aria-label="О библиотеке">
+                        <div class="hero-feature">
+                            <span class="hero-feature__icon" aria-hidden="true">◆</span>
+                            <span><strong>Личная коллекция</strong><small>Только мои тексты</small></span>
+                        </div>
+                        <div class="hero-feature">
+                            <span class="hero-feature__icon" aria-hidden="true">✦</span>
+                            <span><strong>Без лишнего</strong><small>Небольшая библиотека</small></span>
+                        </div>
+                        <div class="hero-feature">
+                            <span class="hero-feature__icon" aria-hidden="true">∞</span>
+                            <span><strong>Для чтения</strong><small>Книги, мысли и записи</small></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero__visual" aria-hidden="true">
+                    <p class="hero__quote">Хорошие книги<br>находят своих<br>читателей.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="home-layout">
+            <div class="home-layout__main">
+                <section class="content-section" id="books" aria-labelledby="books-title">
+                    <header class="section-heading library-books-heading">
+                        <div>
+                            <p class="eyebrow">Личная коллекция</p>
+                            <h2 id="books-title">Книги</h2>
+                            {% if query %}<p class="section-heading__note">Результаты поиска по запросу «{{ query }}»</p>{% endif %}
+                        </div>
+                        {% if current_user and current_user['role'] in ['admin', 'creator'] %}
+                        <div class="library-heading-actions">
+                            <a class="button" href="{{ url_for('library_manage.dashboard') }}">Управление</a>
+                        </div>
+                        {% endif %}
+                    </header>
+
+                    {% if books %}
+                    <div class="book-grid book-grid--library book-grid--count-{{ books|length }}">
+                        {% for book in books %}
+                        <article class="book-card book-card--library">
+                            <a class="book-card__cover" href="{{ url_for('library.book', slug=book['slug']) }}" aria-label="Открыть книгу {{ book['title'] }}">
+                                {% if book['cover_filename'] %}
+                                <img class="book-cover-image" src="{{ url_for('core.media_file', filename='library/covers/' ~ book['cover_filename']) }}" alt="Обложка книги {{ book['title'] }}">
+                                {% else %}
+                                <div class="book-cover-placeholder" aria-hidden="true"></div>
+                                {% endif %}
+                            </a>
+                            <div class="book-card__body">
+                                <div>
+                                    <p class="book-card__kicker">Eternal Library</p>
+                                    <h3 class="book-card__title"><a href="{{ url_for('library.book', slug=book['slug']) }}">{{ book['title'] }}</a></h3>
+                                    {% if book['summary'] or book['description'] %}
+                                    <p class="book-card__description">{{ book['summary'] or book['description'] }}</p>
+                                    {% else %}
+                                    <p class="book-card__description book-card__description--muted">Описание пока не добавлено.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="book-card__actions">
+                                    <a class="button button--primary" href="{{ url_for('library.book', slug=book['slug']) }}">Открыть книгу</a>
+                                </div>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="library-empty-state panel">
+                        <div class="library-empty-state__mark" aria-hidden="true">EL</div>
+                        <div class="library-empty-state__content">
+                            {% if query %}
+                            <h3>Ничего не найдено</h3>
+                            <p>По запросу «{{ query }}» опубликованных книг нет.</p>
+                            {% else %}
+                            <h3>Библиотека пока пуста</h3>
+                            <p>Здесь появятся мои книги, мысли и длинные тексты.</p>
+                            {% endif %}
+                        </div>
+                        {% if query %}
+                        <a class="button" href="{{ url_for('library.home') }}">Сбросить поиск</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </section>
+            </div>
+
+            <aside class="home-layout__sidebar" aria-label="О библиотеке">
+                <section class="side-card library-about-card">
+                    <span class="side-card__mark" aria-hidden="true">EL</span>
+                    <p class="eyebrow">О библиотеке</p>
+                    <h2>Личное пространство</h2>
+                    <p>Здесь собраны мои книги, мысли и длинные тексты — всё, что хочется сохранить, перечитать и оставить после себя.</p>
+                </section>
+
+                <section class="side-card quote-card">
+                    <p class="eyebrow">На полях</p>
+                    <blockquote>
+                        <p>«Больше, чем книги.»</p>
+                        <footer>— Eternal Library</footer>
+                    </blockquote>
+                </section>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="site-footer__inner">
+            <a href="{{ url_for('library.home') }}">Eternal Library</a>
+            <p class="site-footer__copyright">© Eternal Library</p>
+        </div>
+    </footer>
+</body>
+</html>

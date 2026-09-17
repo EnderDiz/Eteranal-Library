@@ -1,0 +1,3 @@
+<a{% if site_section == 'home' %} class="active is-active" aria-current="page"{% endif %} href="{{ url_for('core.home') }}">Главная</a>
+<a{% if site_section == 'tierlists' %} class="active is-active" aria-current="page"{% endif %} href="{{ url_for('tierlists.home') }}">Тир листы</a>
+<a{% if site_section == 'library' %} class="active is-active" aria-current="page"{% endif %} href="{{ url_for('library.home') }}">Библиотека</a>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eternal Library</title>
+    {% include 'components/_favicon.html' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/core/portal.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common/global_style.css') }}">
+</head>
+<body>
+  <div class="page-shell">
+    {% with site_section='home' %}{% include 'components/_site_header.html' %}{% endwith %}
+
+    <main class="portal-page">
+      <div class="ambient ambient-left"></div>
+      <div class="ambient ambient-right"></div>
+
+      <aside class="motto motto-left">
+        <div class="motto-title">Больше,<br />чем просто<br />база знаний</div>
+        <div class="motto-line"></div>
+        <div class="motto-copy">Исследуй.<br />Создавай.<br />Обсуждай.</div>
+      </aside>
+
+      <aside class="motto motto-right">
+        <div class="motto-copy italic">Знания объединяют<br />миры</div>
+        <div class="motto-line"></div>
+      </aside>
+
+      <section class="hero">
+        <p class="eyebrow">единое пространство проекта</p>
+        <h1>Eternal Library</h1>
+        <p class="hero-subtitle">Выбери путь исследования</p>
+        <div class="hero-divider" aria-hidden="true"><span></span></div>
+        <p class="hero-kicker">ДВА РАЗДЕЛА. ОДНО ПРОСТРАНСТВО. БЕСКОНЕЧНЫЕ ВОЗМОЖНОСТИ.</p>
+      </section>
+
+      <section class="portal-grid" aria-label="Разделы сайта">
+        <article class="portal portal-tier">
+          <div class="portal-arch"></div>
+          <div class="portal-emblem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l3 3-2 2-3-3 2-2zm10 0l2 2-3 3-2-2 3-3zM4 17l5-5 3 3-5 5H4v-3zm8-8l3-3 5 5v3h-3l-5-5z"/></svg>
+          </div>
+          <div class="portal-scene">
+            <div class="moon"></div>
+            <div class="castle castle-a"></div>
+            <div class="castle castle-b"></div>
+            <div class="mist"></div>
+          </div>
+          <div class="portal-content">
+            <h2>Тир листы</h2>
+            <p>Сравнивай, оценивай, составляй свои тир листы по персонажам, предметам и многому другому.</p>
+            <a class="portal-link" href="{{ url_for('tierlists.home') }}">Перейти <span>→</span></a>
+          </div>
+        </article>
+
+        <article class="portal portal-library">
+          <div class="portal-arch"></div>
+          <div class="portal-emblem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v15H6.5A2.5 2.5 0 0 0 4 20.5v-15zm16 0A2.5 2.5 0 0 0 17.5 3H13v15h4.5A2.5 2.5 0 0 1 20 20.5v-15z"/></svg>
+          </div>
+          <div class="portal-scene">
+            <div class="bookshelf shelf-a"></div>
+            <div class="bookshelf shelf-b"></div>
+            <div class="open-book"></div>
+            <div class="lamp"></div>
+            <div class="mist"></div>
+          </div>
+          <div class="portal-content">
+            <h2>Онлайн библиотека</h2>
+            <p>Читай, пиши, делись историями. Огромная библиотека для всех любителей литературы.</p>
+            <a class="portal-link" href="{{ url_for('library.home') }}">Открыть <span>→</span></a>
+          </div>
+        </article>
+      </section>
+
+      <div class="floor-emblem" aria-hidden="true">EL</div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <div class="brand-mark small">EL</div>
+        <div>
+          <div class="brand-name small-name">Eternal Library</div>
+          <div class="footer-tagline">Исследуй. Создавай. Обсуждай.</div>
+        </div>
+      </div>
+
+      <div class="footer-quote">
+        <span class="quote-line"></span>
+        <em>«Каждый поиск — это начало новой истории.»</em>
+        <span class="quote-line"></span>
+      </div>
+
+      <div class="footer-actions">
+        <div class="socials" aria-label="Социальные сети">
+          <span class="social">D</span>
+          <span class="social">T</span>
+          <span class="social">▶</span>
+          <span class="social">G</span>
+        </div>
+        <div class="footer-links">
+          <span>О проекте</span>
+          <span>Правила</span>
+          <span>Контакты</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
