@@ -1,0 +1,62 @@
+{% extends "library/manage/manage_base.html" %}
+{% set manage_section = 'dashboard' %}
+
+{% block title %}Управление библиотекой{% endblock %}
+{% block heading %}Управление библиотекой{% endblock %}
+{% block subtitle %}Книги, главы и публикация.{% endblock %}
+{% block actions %}
+{% if books|length < max_books %}
+<a class="button primary" href="{{ url_for('library_manage.book_new') }}">＋ Добавить книгу</a>
+{% endif %}
+<a class="button ghost" href="{{ url_for('library.home') }}">Открыть библиотеку</a>
+{% endblock %}
+
+{% block content %}
+<section class="stats-row" aria-label="Сводка">
+    <article class="stat-card"><span>Книг</span><strong>{{ books|length }}</strong></article>
+    <article class="stat-card"><span>Опубликовано</span><strong>{{ published_count }}</strong></article>
+    <article class="stat-card"><span>Черновиков</span><strong>{{ draft_count }}</strong></article>
+    <article class="stat-card"><span>Лимит</span><strong>{{ books|length }} / {{ max_books }}</strong></article>
+</section>
+
+<section class="panel" id="books">
+    <header class="panel-header">
+        <div><p class="section-kicker">КОНТЕНТ</p><h2>Книги</h2></div>
+    </header>
+
+    {% if books %}
+    <div class="game-admin-list library-admin-list">
+        {% for book in books %}
+        <article class="game-admin-row library-admin-row">
+            <div class="library-book-thumb">
+                {% if book['cover_filename'] %}
+                <img src="{{ url_for('core.media_file', filename='library/covers/' ~ book['cover_filename']) }}" alt="">
+                {% else %}
+                <span>{{ book['title'][:1]|upper }}</span>
+                {% endif %}
+            </div>
+            <div class="game-row-main">
+                <div class="game-row-title">
+                    <h3>{{ book['title'] }}</h3>
+                    <span class="status status-{{ book['publication_status'] }}">{{ {'draft':'Черновик','published':'Опубликовано','archived':'Архив'}[book['publication_status']] }}</span>
+                </div>
+                <p>{{ book['summary'] or book['description'] or 'Описание пока не заполнено.' }}</p>
+                <small>{{ book['published_chapter_count'] or 0 }} опубликованных глав · последнее изменение: {{ book['updated_at'] }}</small>
+            </div>
+            <div class="row-actions">
+                {% if book['publication_status'] == 'published' %}
+                <a class="button ghost" href="{{ url_for('library.book', slug=book['slug']) }}">На сайте</a>
+                {% endif %}
+                <a class="button ghost" href="{{ url_for('library_manage.book_edit', book_id=book['id']) }}">Редактировать</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state library-manage-empty">
+        <strong>В библиотеке пока нет книг.</strong>
+        <span>Создайте первую книгу через кнопку в верхней части страницы — после публикации она появится в библиотеке.</span>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Оглавление книги {{ book['title'] }}">
+    <title>Оглавление — {{ book['title'] }} — Eternal Library</title>
+    {% include 'components/_favicon.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/contents.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common/global_style.css') }}">
+</head>
+<body class="page page--contents">
+    {% with site_section='library' %}{% include 'components/_site_header.html' %}{% endwith %}
+
+    <main class="contents-page">
+        <nav class="breadcrumbs" aria-label="Хлебные крошки">
+            <a href="{{ url_for('core.home') }}">Главная</a><span>›</span>
+            <a href="{{ url_for('library.home') }}">Библиотека</a><span>›</span>
+            <a href="{{ url_for('library.book', slug=book['slug']) }}">{{ book['title'] }}</a><span>›</span>
+            <span aria-current="page">Оглавление</span>
+        </nav>
+
+        <header class="contents-heading">
+            <div>
+                <p class="contents-kicker">{{ book['title'] }}</p>
+                <h1>Оглавление</h1>
+                <p>{{ total_chapters }} опубликованных глав</p>
+            </div>
+            <a class="button" href="{{ url_for('library.book', slug=book['slug']) }}">← К книге</a>
+        </header>
+
+        <section class="contents-tools" aria-label="Навигация по оглавлению">
+            <form class="contents-search" method="get">
+                <input type="search" name="q" value="{{ query }}" placeholder="Поиск по названию главы..." autocomplete="off">
+                <button class="button button--primary" type="submit">Найти</button>
+                {% if query %}<a class="button" href="{{ url_for('library.contents', book_slug=book['slug']) }}">Сбросить</a>{% endif %}
+            </form>
+
+            <form class="contents-jump" method="get">
+                <label for="chapter-jump">Перейти к главе №</label>
+                <input id="chapter-jump" type="number" min="1" max="{{ total_chapters or 1 }}" name="jump" placeholder="№">
+                <button class="button" type="submit">Перейти</button>
+            </form>
+        </section>
+
+        {% if jump_error %}<p class="contents-error">{{ jump_error }}</p>{% endif %}
+
+        {% if total_chapters %}
+        <nav class="contents-quick" aria-label="Быстрый переход">
+            {% if first_chapter %}<a href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=first_chapter['slug']) }}">К первой главе</a>{% endif %}
+            {% if last_chapter %}<a href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=last_chapter['slug']) }}">К последней главе</a>{% endif %}
+        </nav>
+        {% endif %}
+
+        <section class="contents-list-panel" aria-labelledby="contents-list-title">
+            <header class="contents-list-head">
+                <h2 id="contents-list-title">{% if query %}Результаты поиска{% else %}Главы{% endif %}</h2>
+                {% if chapters %}<span>{{ pagination.start_number }}–{{ pagination.end_number }} из {{ pagination.total }}</span>{% endif %}
+            </header>
+
+            {% if chapters %}
+            <ol class="contents-list">
+                {% for chapter in chapters %}
+                <li>
+                    <a href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=chapter['slug']) }}">
+                        <span class="contents-number">{{ chapter['chapter_number'] }}</span>
+                        <span class="contents-title">
+                            <strong>{{ chapter['title'] }}</strong>
+                            {% if chapter['summary'] %}<small>{{ chapter['summary'] }}</small>{% endif %}
+                        </span>
+                        <span class="contents-arrow">›</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <div class="contents-empty">
+                <strong>{% if query %}Ничего не найдено{% else %}Опубликованных глав пока нет{% endif %}</strong>
+                {% if query %}<p>Попробуйте другой запрос или сбросьте поиск.</p>{% endif %}
+            </div>
+            {% endif %}
+        </section>
+
+        {% if pagination.pages > 1 %}
+        <nav class="contents-pagination" aria-label="Страницы оглавления">
+            {% if pagination.page > 1 %}
+            <a class="button" href="{{ url_for('library.contents', book_slug=book['slug'], q=query or None, page=pagination.page - 1) }}">← Назад</a>
+            {% else %}<span></span>{% endif %}
+            <strong>Страница {{ pagination.page }} из {{ pagination.pages }}</strong>
+            {% if pagination.page < pagination.pages %}
+            <a class="button" href="{{ url_for('library.contents', book_slug=book['slug'], q=query or None, page=pagination.page + 1) }}">Дальше →</a>
+            {% else %}<span></span>{% endif %}
+        </nav>
+        {% endif %}
+    </main>
+</body>
+</html>

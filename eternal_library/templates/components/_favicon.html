@@ -1,0 +1,3 @@
+{% if brand['favicon_filename'] %}
+<link rel="icon" type="image/webp" href="{{ url_for('static', filename='img/brand/' ~ brand['favicon_filename']) }}">
+{% endif %}

@@ -1,0 +1,175 @@
+{% extends "library/manage/manage_base.html" %}
+{% set manage_section = 'books' %}
+
+{% block title %}{{ 'Новая книга' if not book else book['title'] }}{% endblock %}
+{% block heading %}{{ 'Новая книга' if not book else book['title'] }}{% endblock %}
+{% block subtitle %}Карточка, оформление, описание и структура книги.{% endblock %}
+{% block actions %}
+<a class="button ghost" href="{{ url_for('library_manage.dashboard') }}">← К книгам</a>
+{% if book and book['publication_status'] == 'published' %}
+<a class="button ghost" href="{{ url_for('library.book', slug=book['slug']) }}">Открыть на сайте</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<form class="editor-form library-book-editor" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">ОСНОВНОЕ</p><h2>Карточка книги</h2></div></header>
+        <div class="library-book-editor-grid">
+            <label class="library-cover-dropzone">
+                {% if book and book['cover_filename'] %}
+                <img src="{{ url_for('core.media_file', filename='library/covers/' ~ book['cover_filename']) }}" alt="Обложка {{ book['title'] }}">
+                {% else %}
+                <span>＋<small>Обложка</small></span>
+                {% endif %}
+                <input type="file" name="cover" accept="image/png,image/jpeg,image/webp">
+            </label>
+
+            <div class="form-grid two">
+                <label class="form-field wide">
+                    <span>Название <b>*</b></span>
+                    <input type="text" name="title" required maxlength="180" value="{{ book['title'] if book else request.form.get('title', '') }}">
+                </label>
+
+                <label class="form-field">
+                    <span>Статус</span>
+                    {% set current_status = book['publication_status'] if book else request.form.get('publication_status', 'draft') %}
+                    <select name="publication_status">
+                        {% for value, label in [('draft','Черновик'),('published','Опубликовано'),('archived','Архив')] %}
+                        <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="form-field">
+                    <span>Теги</span>
+                    <input type="text" name="tags" maxlength="500" value="{{ tags|join(', ') }}" placeholder="Фэнтези, психология, роман">
+                    <small>До 12 тегов, через запятую.</small>
+                </label>
+
+                <label class="form-field wide">
+                    <span>Короткое описание</span>
+                    <textarea name="summary" rows="3" maxlength="500" placeholder="Одна-две фразы для карточки и верхней части страницы.">{{ book['summary'] if book and book['summary'] else request.form.get('summary', '') }}</textarea>
+                </label>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">ОФОРМЛЕНИЕ</p><h2>Обложка и баннер</h2></div></header>
+        <div class="library-media-grid">
+            <div>
+                <p class="library-field-title">Обложка</p>
+                <p class="library-field-help">Используется в каталоге и слева на странице книги.</p>
+                {% if book and book['cover_filename'] %}
+                <label class="checkbox-line"><input type="checkbox" name="remove_cover" value="1"> Удалить текущую обложку</label>
+                {% else %}
+                <p class="library-media-empty">Обложка пока не загружена.</p>
+                {% endif %}
+            </div>
+            <label class="library-banner-dropzone">
+                {% if book and book['banner_filename'] %}
+                <img src="{{ url_for('core.media_file', filename='library/banners/' ~ book['banner_filename']) }}" alt="Баннер {{ book['title'] }}">
+                <span class="library-banner-dropzone__overlay">Заменить баннер</span>
+                {% else %}
+                <span>＋<small>Фоновый баннер книги</small></span>
+                {% endif %}
+                <input type="file" name="banner" accept="image/png,image/jpeg,image/webp">
+            </label>
+            {% if book and book['banner_filename'] %}
+            <label class="checkbox-line library-banner-remove"><input type="checkbox" name="remove_banner" value="1"> Удалить текущий баннер</label>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="panel editor-section">
+        <header class="panel-header"><div><p class="section-kicker">ТЕКСТ</p><h2>О книге</h2></div></header>
+        <label class="form-field">
+            <span>Полное описание</span>
+            <textarea name="description" rows="12" placeholder="Несколько абзацев о книге. Этот текст отображается в большом блоке «О книге».">{{ book['description'] if book and book['description'] else request.form.get('description', '') }}</textarea>
+            <small>Абзацы и переносы строк сохраняются.</small>
+        </label>
+    </section>
+
+    <div class="sticky-savebar">
+        <button class="button primary" type="submit">{{ 'Создать книгу' if not book else 'Сохранить книгу' }}</button>
+    </div>
+</form>
+
+{% if book %}
+<section class="stats-row library-book-stats" aria-label="Статистика книги">
+    <article class="stat-card"><span>Глав</span><strong>{{ stats['chapter_count'] }}</strong></article>
+    <article class="stat-card"><span>Опубликовано</span><strong>{{ stats['published_chapter_count'] }}</strong></article>
+    <article class="stat-card"><span>Слов</span><strong>{{ stats['word_count'] }}</strong></article>
+    <article class="stat-card"><span>Время чтения</span><strong class="library-stat-time">{{ stats['reading_time_label'] }}</strong></article>
+</section>
+
+<section class="panel editor-section library-chapters-admin" id="chapters">
+    <header class="panel-header library-chapters-admin__header">
+        <div><p class="section-kicker">СТРУКТУРА</p><h2>Главы</h2></div>
+        <form method="post" action="{{ url_for('library_manage.chapter_new', book_id=book['id']) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="button primary small" type="submit">＋ Добавить главу</button>
+        </form>
+    </header>
+
+    <form class="library-chapter-filters" method="get" action="{{ url_for('library_manage.book_edit', book_id=book['id']) }}#chapters">
+        <input type="search" name="chapter_q" value="{{ chapter_query }}" placeholder="Поиск по главам...">
+        <select name="chapter_status" aria-label="Статус главы">
+            <option value="">Все статусы</option>
+            <option value="draft" {% if chapter_status == 'draft' %}selected{% endif %}>Черновики</option>
+            <option value="published" {% if chapter_status == 'published' %}selected{% endif %}>Опубликованные</option>
+            <option value="archived" {% if chapter_status == 'archived' %}selected{% endif %}>Архив</option>
+        </select>
+        <button class="button ghost small" type="submit">Найти</button>
+        {% if chapter_query or chapter_status %}
+        <a class="button ghost small" href="{{ url_for('library_manage.book_edit', book_id=book['id']) }}#chapters">Сбросить</a>
+        {% endif %}
+    </form>
+
+    {% if chapters %}
+    <div class="library-chapter-list">
+        {% for chapter in chapters %}
+        <article class="library-chapter-row">
+            <div class="library-chapter-order">{{ chapter['chapter_number'] }}</div>
+            <div class="library-chapter-row__main">
+                <div class="library-chapter-row__title">
+                    <strong>{{ chapter['title'] }}</strong>
+                    <span class="status status-{{ chapter['publication_status'] }}">{{ {'draft':'Черновик','published':'Опубликовано','archived':'Архив'}[chapter['publication_status']] }}</span>
+                </div>
+                <small>{{ chapter['summary'] or 'Краткое описание не заполнено.' }}</small>
+            </div>
+            <a class="button ghost small" href="{{ url_for('library_manage.chapter_edit', book_id=book['id'], chapter_id=chapter['id']) }}">Редактировать</a>
+        </article>
+        {% endfor %}
+    </div>
+    {% if chapter_pagination.pages > 1 %}
+    <nav class="library-chapter-pagination" aria-label="Страницы глав">
+        {% if chapter_pagination.page > 1 %}
+        <a class="button ghost small" href="{{ url_for('library_manage.book_edit', book_id=book['id'], chapter_q=chapter_query or None, chapter_status=chapter_status or None, chapter_page=chapter_pagination.page - 1) }}#chapters">← Назад</a>
+        {% endif %}
+        <span>{{ chapter_pagination.start_number }}–{{ chapter_pagination.end_number }} из {{ chapter_pagination.total }}</span>
+        {% if chapter_pagination.page < chapter_pagination.pages %}
+        <a class="button ghost small" href="{{ url_for('library_manage.book_edit', book_id=book['id'], chapter_q=chapter_query or None, chapter_status=chapter_status or None, chapter_page=chapter_pagination.page + 1) }}#chapters">Дальше →</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty-state library-manage-empty">
+        <strong>У книги пока нет глав.</strong>
+        <span>Добавьте первую главу кнопкой в правой части заголовка.</span>
+    </div>
+    {% endif %}
+</section>
+
+<section class="panel danger-zone">
+    <header class="panel-header"><div><p class="section-kicker">УДАЛЕНИЕ</p><h2>Удалить книгу</h2></div></header>
+    <form method="post" action="{{ url_for('library_manage.book_delete', book_id=book['id']) }}" onsubmit="return confirm('Удалить книгу «{{ book['title'] }}» вместе со всеми главами?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button danger" type="submit">Удалить книгу</button>
+    </form>
+</section>
+{% endif %}
+{% endblock %}

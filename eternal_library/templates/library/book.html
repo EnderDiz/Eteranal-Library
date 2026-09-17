@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ book['summary'] or book['description'] or book['title'] }}">
+    <title>{{ book['title'] }} — Eternal Library</title>
+    {% include 'components/_favicon.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/book.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common/global_style.css') }}">
+</head>
+<body class="page page--book">
+    {% with site_section='library' %}{% include 'components/_site_header.html' %}{% endwith %}
+    {% set can_manage = current_user and current_user['role'] in ['admin', 'creator'] %}
+
+    <main class="book-page">
+        <nav class="breadcrumbs" aria-label="Хлебные крошки">
+            <a href="{{ url_for('core.home') }}">Главная</a><span>›</span>
+            <a href="{{ url_for('library.home') }}">Библиотека</a><span>›</span>
+            <span aria-current="page">{{ book['title'] }}</span>
+        </nav>
+
+        {% set hero_filename = book['banner_filename'] or book['cover_filename'] %}
+        {% set hero_folder = 'library/banners/' if book['banner_filename'] else 'library/covers/' %}
+        <section class="book-hero{% if hero_filename %} book-hero--with-cover{% endif %}"
+                 aria-labelledby="book-title"
+                 {% if hero_filename %}style="--book-hero-art: url('{{ url_for('core.media_file', filename=hero_folder ~ hero_filename) }}')"{% endif %}>
+            <div class="book-hero__cover">
+                {% if book['cover_filename'] %}
+                <img class="book-cover-image" src="{{ url_for('core.media_file', filename='library/covers/' ~ book['cover_filename']) }}" alt="Обложка книги {{ book['title'] }}">
+                {% else %}
+                <div class="book-cover-placeholder" aria-hidden="true"><span>{{ book['title'][:1]|upper }}</span></div>
+                {% endif %}
+            </div>
+
+            <div class="book-hero__main">
+                <div class="book-status-line">
+                    <span class="book-status book-status--published"><i aria-hidden="true"></i>Опубликовано</span>
+                    {% for tag in tags %}<span class="book-kind">{{ tag }}</span>{% endfor %}
+                </div>
+
+                <h1 id="book-title">{{ book['title'] }}</h1>
+                <p class="book-hero__summary">{{ book['summary'] or 'Короткое описание пока не добавлено.' }}</p>
+
+                <dl class="book-meta" aria-label="Информация о книге">
+                    <div><dt>Глав</dt><dd>{{ stats['published_chapter_count'] }}</dd></div>
+                    <div><dt>Опубликовано</dt><dd>{{ published_at_label }}</dd></div>
+                    <div><dt>Время чтения</dt><dd>{{ stats['reading_time_label'] }}</dd></div>
+                    {% if stats['word_count'] %}<div><dt>Слов</dt><dd>{{ stats['word_count'] }}</dd></div>{% endif %}
+                </dl>
+
+                <div class="book-actions">
+                    {% if first_chapter %}
+                    <a class="button button--primary book-read-button" href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=first_chapter['slug']) }}">▣ Читать →</a>
+                    <a class="button book-action-secondary" href="{{ url_for('library.contents', book_slug=book['slug']) }}">☷ Оглавление</a>
+                    {% endif %}
+                    {% if can_manage %}
+                    <a class="button book-action-secondary" href="{{ url_for('library_manage.book_edit', book_id=book['id']) }}">✎ Редактировать</a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <div class="book-layout">
+            <section class="panel book-about" aria-labelledby="about-book-title">
+                <header class="book-panel-heading book-panel-heading--centered">
+                    <span class="book-panel-icon" aria-hidden="true">▰</span>
+                    <h2 id="about-book-title">О книге</h2>
+                </header>
+                <div class="book-about__divider" aria-hidden="true"><span></span></div>
+                <div class="prose book-about__text">
+                    {% if book['description'] %}
+                    <p class="book-about__preline">{{ book['description'] }}</p>
+                    {% elif book['summary'] %}
+                    <p>{{ book['summary'] }}</p>
+                    {% else %}
+                    <p class="book-muted-copy">Описание пока не добавлено.</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <aside class="book-sidebar" aria-label="Дополнительная информация о книге">
+                <section class="panel book-updates" aria-labelledby="book-updates-title">
+                    <header class="book-panel-heading">
+                        <span class="book-panel-icon" aria-hidden="true">◷</span>
+                        <h2 id="book-updates-title">Недавно обновлено</h2>
+                    </header>
+                    <ol class="update-list">
+                        {% for item in activity %}
+                        <li class="update-item{% if loop.first %} update-item--latest{% endif %}">
+                            <time datetime="{{ item['created_at'] }}">{{ format_library_date(item['created_at']) }}</time>
+                            <div><strong>{{ item['title'] }}</strong>{% if item['detail'] %}<p>{{ item['detail'] }}</p>{% endif %}</div>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </section>
+
+                <section class="panel book-contents" id="contents" aria-labelledby="book-contents-title">
+                    <header class="book-panel-heading book-panel-heading--split">
+                        <div><span class="book-panel-icon" aria-hidden="true">☷</span><h2 id="book-contents-title">Содержание</h2></div>
+                        <a class="book-contents__count" href="{{ url_for('library.contents', book_slug=book['slug']) }}">{{ stats['published_chapter_count'] }} глав →</a>
+                    </header>
+                    {% if chapters %}
+                    <ol class="book-chapter-list">
+                        {% set ns = namespace(previous=0) %}
+                        {% for chapter in chapters %}
+                        {% if ns.previous and chapter['chapter_number'] > ns.previous + 1 %}
+                        <li class="book-chapter-list__gap" aria-hidden="true"><span>…</span></li>
+                        {% endif %}
+                        <li>
+                            <a href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=chapter['slug']) }}">
+                                <span>{{ chapter['chapter_number'] }}</span><strong>{{ chapter['title'] }}</strong><i>›</i>
+                            </a>
+                        </li>
+                        {% set ns.previous = chapter['chapter_number'] %}
+                        {% endfor %}
+                    </ol>
+                    <a class="book-contents-more" href="{{ url_for('library.contents', book_slug=book['slug']) }}">Открыть полное оглавление →</a>
+                    {% else %}
+                    <div class="book-contents-empty">
+                        <span class="book-contents-empty__mark" aria-hidden="true">☰</span>
+                        <strong>Глав пока нет</strong>
+                        <p>После публикации первой главы здесь появится оглавление.</p>
+                    </div>
+                    {% endif %}
+                </section>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="site-footer"><div class="site-footer__inner"><a href="{{ url_for('library.home') }}">Eternal Library</a><p class="site-footer__copyright">© Eternal Library</p></div></footer>
+</body>
+</html>

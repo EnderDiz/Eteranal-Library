@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile/profile_style.css') }}">
+{% endblock %}
+
+{% block body %}
+{% include 'components/_site_header.html' %}
+
+<div class="account-layout">
+    <aside class="account-sidebar">
+        <div class="avatar-block">
+            <form class="sidebar-avatar-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <label class="avatar-dropzone">
+                    <img src="{{ avatar_url(current_user) }}" alt="Аватар {{ current_user['username'] }}" data-avatar-preview>
+                </label>
+            </form>
+
+            <h2 class="sidebar-login">{{ current_user['username'] }}</h2>
+            <span class="user-role">{{ role_label(current_user['role']) }}</span>
+        </div>
+
+        <nav class="account-nav" aria-label="Навигация личного кабинета">
+            <label class="account-nav-link" for="tab-profile">
+                <span class="nav-icon">●</span>
+                Профиль
+            </label>
+
+            <label class="account-nav-link" for="tab-settings">
+                <span class="nav-icon">⚙</span>
+                Настройки
+            </label>
+
+            {% if current_user['role'] in ['admin', 'creator'] %}
+            <a class="account-nav-link management-nav-link" href="{{ url_for('tierlists_manage.manage_dashboard') }}">
+                <span class="nav-icon">▦</span>
+                Тир листы
+            </a>
+            <a class="account-nav-link management-nav-link" href="{{ url_for('library_manage.dashboard') }}">
+                <span class="nav-icon">▤</span>
+                Библиотека
+            </a>
+            {% endif %}
+        </nav>
+
+        <form class="logout-form" action="{{ url_for('auth.logout') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="logout-link" type="submit">
+                <span>↪</span>
+                Выйти
+            </button>
+        </form>
+    </aside>
+
+    <main class="account-content">
+        <input class="tab-control" type="radio" name="account-tab" id="tab-profile" {% if active_tab == 'profile' %}checked{% endif %}>
+        <input class="tab-control" type="radio" name="account-tab" id="tab-settings" {% if active_tab == 'settings' %}checked{% endif %}>
+
+        <div class="page-heading">
+            <p class="breadcrumbs">Главная / Личный кабинет</p>
+            <h1>Личный кабинет</h1>
+            <p>Управляйте профилем и настройками.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-stack" aria-live="polite">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="tab-panel profile-panel">
+            <div class="profile-grid">
+                <article class="profile-card profile-summary">
+                    <div class="profile-avatar-wrap">
+                        <img src="{{ avatar_url(current_user) }}" alt="Аватар {{ current_user['username'] }}">
+                    </div>
+
+                    <h2>{{ current_user['username'] }}</h2>
+                    <span class="user-role">{{ role_label(current_user['role']) }}</span>
+
+                    <dl class="profile-meta">
+                        <div>
+                            <dt>Логин</dt>
+                            <dd>{{ current_user['username'] }}</dd>
+                        </div>
+                        <div>
+                            <dt>Почта</dt>
+                            <dd>{{ current_user['email'] or 'Не указана' }}</dd>
+                        </div>
+                        <div>
+                            <dt>Дата регистрации</dt>
+                            <dd>{{ registration_date }}</dd>
+                        </div>
+                    </dl>
+                </article>
+
+                <article class="profile-card profile-details">
+                    <div class="card-title-row">
+                        <div>
+                            <p class="section-kicker">ПРОФИЛЬ</p>
+                            <h2>Основная информация</h2>
+                        </div>
+                    </div>
+
+                    <div class="profile-info-row">
+                        <span>Отображаемый логин</span>
+                        <strong>{{ current_user['username'] }}</strong>
+                    </div>
+                    <div class="profile-info-row">
+                        <span>Электронная почта</span>
+                        <strong>{{ current_user['email'] or 'Не указана' }}</strong>
+                    </div>
+                    <div class="profile-info-row">
+                        <span>Роль</span>
+                        <strong>{{ role_label(current_user['role']) }}</strong>
+                    </div>
+                    <div class="profile-info-row">
+                        <span>Статус аккаунта</span>
+                        <strong class="status-ok">Активен</strong>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="tab-panel settings-panel">
+            <div class="settings-grid">
+                <section class="settings-card">
+                    <div class="settings-card-title">
+                        <p class="section-kicker">АККАУНТ</p>
+                        <h2>Основные данные</h2>
+                    </div>
+
+                    <form class="settings-form" action="{{ url_for('profile.update_account') }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label class="form-field">
+                            <span>Логин</span>
+                            <input type="text" name="username" value="{{ current_user['username'] }}" required minlength="3" maxlength="32">
+                        </label>
+
+                        <label class="form-field">
+                            <span>Электронная почта</span>
+                            <input type="email" name="email" value="{{ current_user['email'] or '' }}" placeholder="name@example.com">
+                        </label>
+
+                        <button class="primary-button" type="submit">Сохранить данные</button>
+                    </form>
+                </section>
+
+                <section class="settings-card">
+                    <div class="settings-card-title">
+                        <p class="section-kicker">БЕЗОПАСНОСТЬ</p>
+                        <h2>Смена пароля</h2>
+                    </div>
+
+                    <form class="settings-form" action="{{ url_for('profile.update_password') }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label class="form-field">
+                            <span>Текущий пароль</span>
+                            <input type="password" name="current-password" autocomplete="current-password" placeholder="Введите текущий пароль" required>
+                        </label>
+
+                        <label class="form-field">
+                            <span>Новый пароль</span>
+                            <input type="password" name="new-password" autocomplete="new-password" placeholder="Минимум 8 символов" required minlength="8">
+                        </label>
+
+                        <label class="form-field">
+                            <span>Повторите новый пароль</span>
+                            <input type="password" name="confirm-password" autocomplete="new-password" placeholder="Повторите новый пароль" required minlength="8">
+                        </label>
+
+                        <button class="primary-button" type="submit">Изменить пароль</button>
+                    </form>
+                </section>
+
+                <section class="settings-card avatar-settings-card">
+                    <div class="settings-card-title">
+                        <p class="section-kicker">АВАТАР</p>
+                        <h2>Изображение профиля</h2>
+                    </div>
+
+                    <form class="avatar-settings-content" action="{{ url_for('profile.update_avatar') }}" method="post" enctype="multipart/form-data" data-avatar-form>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label class="settings-avatar-dropzone" for="settings-avatar-input" data-avatar-dropzone>
+                            <img src="{{ avatar_url(current_user) }}" alt="Текущий аватар" data-avatar-preview>
+                            <span class="dropzone-text">
+                                <strong>Перетащите изображение сюда</strong>
+                                <small>или нажмите, чтобы выбрать файл</small>
+                            </span>
+                        </label>
+
+                        <input class="avatar-input" id="settings-avatar-input" name="avatar" type="file" accept="image/png,image/jpeg,image/webp" data-avatar-input>
+
+                        <div class="avatar-actions">
+                            <p class="file-help">PNG, JPG или WEBP. До 5 МБ. Сервер обрежет изображение до квадрата 512×512.</p>
+                            <button class="primary-button" type="submit">Сохранить аватар</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </section>
+    </main>
+</div>
+
+<footer class="site-footer">
+    <strong>{{ brand['name'] }}</strong>
+    <span>{{ brand['copyright'] }}</span>
+</footer>
+
+<script src="{{ url_for('static', filename='js/profile/profile_page.js') }}"></script>
+{% endblock %}

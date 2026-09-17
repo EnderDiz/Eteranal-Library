@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Управление библиотекой{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tierlists/management_style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/library/management.css') }}">
+{% endblock %}
+
+{% block body %}
+{% with site_section='library' %}{% include 'components/_site_header.html' %}{% endwith %}
+
+<div class="manage-layout library-manage-layout">
+    <aside class="manage-sidebar">
+        <p class="sidebar-kicker">LIBRARY CMS</p>
+        <nav class="manage-nav">
+            <a class="{% if manage_section == 'dashboard' %}active{% endif %}" href="{{ url_for('library_manage.dashboard') }}">
+                <span>⌂</span> Обзор
+            </a>
+            <a class="{% if manage_section == 'books' %}active{% endif %}" href="{{ url_for('library_manage.dashboard') }}#books">
+                <span>▦</span> Книги
+            </a>
+        </nav>
+
+        <div class="sidebar-note">
+            <strong>{% if current_user['role'] == 'admin' %}Администратор{% else %}Редактор{% endif %}</strong>
+            <span>Доступ к управлению личной библиотекой.</span>
+        </div>
+    </aside>
+
+    <main class="manage-content">
+        <header class="page-heading">
+            <div>
+                <p class="eyebrow">ETERNAL LIBRARY / LIBRARY</p>
+                <h1>{% block heading %}Библиотека{% endblock %}</h1>
+                <p>{% block subtitle %}{% endblock %}</p>
+            </div>
+            <div class="heading-actions">{% block actions %}{% endblock %}</div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-stack" aria-live="polite">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

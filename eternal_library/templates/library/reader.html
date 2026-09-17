@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ chapter['summary'] or chapter['title'] }} — {{ book['title'] }}">
+    <title>{{ chapter['title'] }} — {{ book['title'] }} — Eternal Library</title>
+    {% include 'components/_favicon.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/library/reader.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common/global_style.css') }}">
+</head>
+<body class="page page--reader">
+    {% with site_section='library' %}{% include 'components/_site_header.html' %}{% endwith %}
+
+    <main class="reader-layout reader-layout--book">
+        <aside class="reader-sidebar reader-sidebar--left" aria-label="Навигация по книге">
+            <a class="button button--back" href="{{ url_for('library.book', slug=book['slug']) }}">← К книге</a>
+
+            <section class="reader-book-card">
+                {% if book['cover_filename'] %}
+                <img class="reader-book-cover" src="{{ url_for('core.media_file', filename='library/covers/' ~ book['cover_filename']) }}" alt="">
+                {% else %}
+                <div class="book-cover-placeholder" aria-hidden="true"></div>
+                {% endif %}
+                <div>
+                    <h2>{{ book['title'] }}</h2>
+                    {% if book_tags %}<ul class="tag-list">{% for tag in book_tags[:3] %}<li>{{ tag }}</li>{% endfor %}</ul>{% endif %}
+                </div>
+            </section>
+
+            <section class="toc-panel" aria-labelledby="toc-title">
+                <div class="toc-panel__head">
+                    <h2 id="toc-title">Оглавление</h2>
+                    <a href="{{ url_for('library.contents', book_slug=book['slug']) }}">Все {{ chapter_total }} →</a>
+                </div>
+                <ol class="toc-list">
+                    {% for item in chapters %}
+                    <li class="{% if item['id'] == chapter['id'] %}is-active{% endif %}">
+                        <a href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=item['slug']) }}">{{ item['chapter_number'] }}. {{ item['title'] }}</a>
+                    </li>
+                    {% endfor %}
+                </ol>
+            </section>
+        </aside>
+
+        <article class="reader-content">
+            <header class="chapter-heading">
+                <p class="chapter-heading__number">Глава {{ chapter_number }} из {{ chapter_total }}</p>
+                <h1>{{ chapter['title'] }}</h1>
+                {% if chapter['summary'] %}<blockquote><p>{{ chapter['summary'] }}</p></blockquote>{% endif %}
+            </header>
+
+            <div class="reader-prose">{{ chapter_content|safe }}</div>
+
+            <footer class="reader-pagination">
+                {% if previous_chapter %}
+                <a class="chapter-nav-button" href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=previous_chapter['slug']) }}">← Предыдущая<small>{{ previous_chapter['title'] }}</small></a>
+                {% else %}<span></span>{% endif %}
+                <div class="reader-pagination__position"><span>{{ stats['word_count'] }} слов · {{ stats['reading_time_label'] }}</span></div>
+                {% if next_chapter %}
+                <a class="chapter-nav-button chapter-nav-button--next" href="{{ url_for('library.reader', book_slug=book['slug'], chapter_slug=next_chapter['slug']) }}">Следующая →<small>{{ next_chapter['title'] }}</small></a>
+                {% else %}<a class="chapter-nav-button chapter-nav-button--next" href="{{ url_for('library.book', slug=book['slug']) }}">К книге →<small>Конец опубликованного текста</small></a>{% endif %}
+            </footer>
+        </article>
+    </main>
+</body>
+</html>
