@@ -1,0 +1,3 @@
+# DEVELOPMENT ONLY. Не использовать этот файл с тестовым паролем на production.
+login="Ender"
+password="test_endministrator_accaunt"
